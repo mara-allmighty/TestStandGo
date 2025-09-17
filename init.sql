@@ -1,7 +1,7 @@
 create table gateway
 (
     gtw_id           integer generated always as identity
-        primary key,
+                     primary key,
     gtw_is_active    boolean default true not null,
     gtw_adapter_id   varchar(30)          not null,
     gtw_params_jsonb jsonb

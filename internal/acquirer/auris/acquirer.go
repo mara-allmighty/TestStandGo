@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/labstack/gommon/log"
 	"slices"
 	"strconv"
 	"testStand/internal/acquirer"
@@ -13,6 +12,8 @@ import (
 	"testStand/internal/acquirer/helper"
 	"testStand/internal/models"
 	"testStand/internal/repos"
+
+	"github.com/labstack/gommon/log"
 
 	"github.com/shopspring/decimal"
 )
