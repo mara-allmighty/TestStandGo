@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: acq-db
+    environment:
+      POSTGRES_DB: acq
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: asdfg
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d acq"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: acq-app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:asdfg@db:5432/acq?sslmode=disable
+    ports:
+      - "1323:1323"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
