@@ -3,9 +3,10 @@ package service
 import (
 	"context"
 	"database/sql"
-	"github.com/labstack/gommon/log"
 	"net/http"
 	"time"
+
+	"github.com/labstack/gommon/log"
 
 	"testStand/internal/models"
 	"testStand/internal/repos"
@@ -19,9 +20,7 @@ type Service struct {
 	dbClient *repos.Repo
 }
 
-func NewService(
-	pgClient *sql.DB,
-) *Service {
+func NewService(pgClient *sql.DB) *Service {
 	return &Service{
 		dbClient: repos.NewRepo(pgClient),
 	}
@@ -50,7 +49,6 @@ func (s *Service) CreatePaymentTransaction(c echo.Context) error {
 }
 
 func (s *Service) createTransaction(req *Request, txnType models.Transaction_Type) *Response {
-
 	txn := &models.Transaction{
 		TxnId:          int64(uuid.New().ID()),
 		ParentTxn:      nil,
@@ -111,7 +109,7 @@ func (s *Service) process(ctx context.Context, txn *models.Transaction) {
 		}
 	}
 
-	// Handler transaction
+	// Create Transaction in database
 	handler, _ := txnhandler.NewHandler(s.dbClient, acq)
 	handler.HandleTxn(ctx, txn)
 }

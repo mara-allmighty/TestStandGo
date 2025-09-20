@@ -35,7 +35,7 @@ func NewHandler(db *repos.Repo, acq any) (*handler, error) {
 	return &h, nil
 }
 
-// HandleTxn
+// Create Transaction
 func (h *handler) HandleTxn(ctx context.Context, txn *models.Transaction) {
 
 	if h.acquirer != nil {
@@ -54,13 +54,14 @@ func (h *handler) HandleTxn(ctx context.Context, txn *models.Transaction) {
 	}
 }
 
-// handle
+// Sending requests to acquirer
 func (h *handler) handle(ctx context.Context, txn *models.Transaction) {
 	logger := log.New("dev")
 
 	var status *acquirer.TransactionStatus
 	var err error
 
+	// ----
 	if txn.IsPayment() {
 		status, err = h.acquirer.Payment(ctx, txn)
 	} else if txn.IsPayout() {
@@ -70,6 +71,7 @@ func (h *handler) handle(ctx context.Context, txn *models.Transaction) {
 	} else {
 		logger.Info("unknown transaction status")
 	}
+	// ----
 
 	if err != nil {
 		logger.Error("error processing txn by acquirer interface: ", err)
@@ -84,25 +86,22 @@ func (h *handler) handle(ctx context.Context, txn *models.Transaction) {
 		errorCode = status.Info["ps_error_code"]
 		errorMessage = status.Info["ps_error_message"]
 	}
+
 	switch status.Status {
 	case acquirer.APPROVED:
 		txn.SetReconciled(updatedAt)
-
 		logger.Info(fmt.Sprintf("approving txn with status: %s", txn.TxnStatusId))
 	case acquirer.REJECTED:
 		txn.SetDeclined(updatedAt)
 		if status.TxnError == nil {
 			errorCodeInt, _ := strconv.Atoi(errorCode)
-
 			status.TxnError = acquirer.NewTxnError(errorCodeInt, errorMessage)
 		}
-
 		errInfo := fmt.Sprintf("declining txn with code: %d", status.TxnError.Code)
 		if len(status.TxnError.Description) > 0 {
 			errInfo += fmt.Sprintf(" and message %s", status.TxnError.Description)
 		}
 		logger.Info(errInfo)
-
 	case acquirer.PENDING:
 		h.SetSafePending(ctx, txn, &updatedAt)
 	case acquirer.UNSPECIFIED:
@@ -132,7 +131,6 @@ func (h *handler) SetSafePending(ctx context.Context, txn *models.Transaction, u
 
 	if txn.IsReconciled() || txn.IsDeclined() {
 		logger.Warn("can't mark txn as pending, status already final")
-
 		if txn.IsDeclined() {
 			if txn.Err != nil {
 				logger.Error("error restoring last txn error")

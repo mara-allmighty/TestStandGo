@@ -31,7 +31,6 @@ func NewClient(ctx context.Context, baseAddress, apiKey string, timeout *int) *C
 
 // MakePayment
 func (c *Client) MakePayment(ctx context.Context, request *PaymentRequest) (*Response, error) {
-
 	resp := &Response{}
 	err := c.makeRequest(ctx, request, resp, http.MethodPost, helper.JoinUrl(c.baseAddress, payment))
 	if err != nil {
