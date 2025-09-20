@@ -2,21 +2,24 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
+	"os"
 )
 
 func PostgresConnection() *sql.DB {
-	connectionString := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", "localhost", "5432", "postgres", "asdfg", "acq")
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		log.Fatal("DATABASE_URL environment variable is required")
+	}
 
-	db, err := sql.Open("postgres", connectionString)
+	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to open database: ", err)
 	}
 
 	err = db.Ping()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to ping database: ", err)
 	}
 
 	return db
