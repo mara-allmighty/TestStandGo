@@ -4,6 +4,7 @@ import (
 	"crypto/hmac"
 	"crypto/md5"
 	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"hash"
 	"net/url"
@@ -15,6 +16,13 @@ import (
 func JoinUrl(baseUrl string, endpointParts ...string) string {
 	path, _ := url.JoinPath(baseUrl, endpointParts...)
 	return path
+}
+
+// хеширование
+func GenerateSHA256Hash(data string) []byte { // ?
+	hash := sha256.New()
+	hash.Write([]byte(data))
+	return hash.Sum(nil)
 }
 
 // GenerateSHA1Hash.

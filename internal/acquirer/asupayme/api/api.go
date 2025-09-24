@@ -4,93 +4,80 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
+	"log"
 	"net/http"
 	"testStand/internal/acquirer/helper"
 )
 
 type Client struct {
 	baseAddress string
+	secretKey   string
 	apiKey      string
-	client      *http.Client
+	merchantID  string
+	httpClient  *http.Client
 }
 
-const (
-	payment = "payment"
-	payout  = "payout"
-	status  = "status"
-)
-
-func NewClient(ctx context.Context, baseAddress, apiKey string, timeout *int) *Client {
-	client := http.DefaultClient
+func NewClient(ctx context.Context, merchantID, baseAddress, apiKey, secretKey string, timeout *int) *Client {
 	return &Client{
 		baseAddress: baseAddress,
+		secretKey:   secretKey,
 		apiKey:      apiKey,
-		client:      client,
+		merchantID:  merchantID,
+		httpClient:  http.DefaultClient,
 	}
 }
 
-// MakePayment
-func (c *Client) MakePayment(ctx context.Context, request *Request) (*Response, error) {
-	sign := createSign(request.MerchId, c.apiKey)
-
-	resp := &Response{}
-	err := c.makeRequest(ctx, request, resp, sign, payment)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
-}
-
-// MakePayout
+// Payout
 func (c *Client) MakePayout(ctx context.Context, request *Request, apiKey string) (*Response, error) {
-	sign := createSign(payout+request.UserRef, apiKey)
+	log.Println("MakePayout is called")
+
+	sign, err := createSign(request, apiKey)
+	if err != nil {
+		log.Println("An error occured while creating a sign")
+		return nil, err
+	}
 
 	resp := &Response{}
-	err := c.makeRequest(ctx, request, resp, sign, payout)
+	err = c.makeRequest(ctx, request, resp, sign)
 	if err != nil {
+		log.Println("An error occured while sending request to asupayme")
 		return nil, err
 	}
 
 	return resp, nil
 }
 
-// GetStatus
-func (c *Client) GetStatus(ctx context.Context, request *StatusRequest, apiKey string) (*Response, error) {
-	sign := createSign(request.Id, apiKey)
-
-	resp := &Response{}
-	err := c.makeRequest(ctx, request, resp, sign, status)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
-}
-
-// makeRequest
-func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, sign, endpoint string) error {
+func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, endpoint string) error {
 	body, err := json.Marshal(payload)
 	if err != nil {
+		log.Println("An error occured while marshal payload")
 		return err
 	}
 
 	req, err := http.NewRequest(http.MethodPost, helper.JoinUrl(c.baseAddress, endpoint), bytes.NewReader(body))
 	if err != nil {
+		log.Println("An error occured while http.NewRequest()")
 		return err
 	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Sign", sign)
 
-	resp, err := c.client.Do(req)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		log.Println("An error occured while httpCliend.Do working")
 		return err
 	}
+
 	defer resp.Body.Close()
 
-	err = json.NewDecoder(resp.Body).Decode(&outResponse)
+	bodyBytes, _ := io.ReadAll(resp.Body)
+
+	err = json.Unmarshal(bodyBytes, &outResponse)
 	if err != nil {
-		return nil // error EOF, because invalid url
+		log.Println("An error occured while Unmarshal bodyBytes to &outResponse")
+		return nil
 	}
 
 	return nil

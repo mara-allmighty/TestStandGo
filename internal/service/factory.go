@@ -29,8 +29,7 @@ const (
 )
 
 type Factory struct {
-	dbClient   *repos.Repo
-	currentEnv string
+	dbClient *repos.Repo
 }
 
 // NewFactory
@@ -71,7 +70,7 @@ func (f *Factory) Create(ctx context.Context, txn *models.Transaction) (any, err
 	return acq, err
 }
 
-// create & choose Acquirer
+// create & choose acquirer
 func (f *Factory) create(ctx context.Context, txn *models.Transaction, gateway *repos.Gateway, channelParams repos.Params, callbackUrl string) (acquirer.Acquirer, error) {
 	logger := log.New("dev")
 
@@ -113,7 +112,7 @@ func (f *Factory) create(ctx context.Context, txn *models.Transaction, gateway *
 		if err = f.unmarshalParams(gateway.ParamsJson, channelParams.Credentials, &gtwParams, &chParams); err != nil {
 			return nil, err
 		}
-		acq = asupayme.NewAcquirer(ctx, f.dbClient, &chParams, &gtwParams, callbackUrl)
+		acq = asupayme.NewAcquirer(ctx, f.dbClient, chParams, gtwParams, callbackUrl)
 	default:
 		return nil, ErrUnsupportedAcquirer
 	}

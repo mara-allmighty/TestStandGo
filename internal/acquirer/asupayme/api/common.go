@@ -1,8 +1,8 @@
 package api
 
 import (
-	"crypto/sha1"
-	"encoding/base64"
+	"encoding/hex"
+	"strconv"
 	"testStand/internal/acquirer/helper"
 )
 
@@ -21,20 +21,26 @@ type Response struct {
 	P2PBank        string `json:"p2p_bank"`
 	P2PName        string `json:"p2p_name"`
 	Error          string `json:"error"`
-	Amount         string `json:"amount"`
+	Amount         int64  `json:"amount"`
 }
 
-type Request struct {
-	MerchId         string `json:"merch_id"`
-	Extra           string `json:"extra"`
-	Amount          string `json:"amount"`
-	Currency        string `json:"currency"`
-	NotificationUrl string `json:"notification_url"`
-	UserId          string `json:"user_id,omitempty"`
-	UserRef         string `json:"user_ref,omitempty"`
-	UserIp          string `json:"user_ip,omitempty"`
-	FinishUrl       string `json:"finish_url"`
+// -----------
+type Request struct { // ?
+	Merchant   string    `json:"merchant"`
+	WithdrawID string    `json:"withdraw_id"`
+	CardData   *CardData `json:"card_data,omitempty"`
+	Amount     int64     `json:"amount"`
+	Signature  string    `json:"signature"`
 }
+
+type CardData struct {
+	OwnerName    string `json:"owner_name"`
+	CardNumber   string `json:"card_number"`
+	ExpiredMonth string `json:"expired_month"`
+	ExpiredYear  string `json:"expired_year"`
+}
+
+// -------------
 
 type StatusRequest struct {
 	Id      string `json:"id"`
@@ -52,7 +58,11 @@ type Callback struct {
 	Sign             string `json:"sign"`
 }
 
-func createSign(input, apiKey string) string {
-	sum := helper.GenerateHMAC(sha1.New, []byte(input), apiKey)
-	return base64.StdEncoding.EncodeToString(sum)
+// createSign
+func createSign(req *Request, secretKey string) (string, error) { // ?
+	amountStr := strconv.FormatInt(req.Amount, 10)
+	stringForHash := req.Merchant + req.CardData.CardNumber + amountStr + secretKey
+	hashed := helper.GenerateSHA256Hash(stringForHash)
+	signature := hex.EncodeToString(hashed)
+	return signature, nil
 }

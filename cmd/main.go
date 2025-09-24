@@ -2,13 +2,18 @@ package main
 
 import (
 	"testStand/internal/service"
+	"testStand/logs"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
 
 func main() {
-	// Echo instance
+	// Используем путь внутри контейнера (WORKDIR /root/)
+	logFile := logs.SetLogger("./logs/app.log")
+	defer logFile.Close() // ← обязательно!
+
+	// Echo
 	e := echo.New()
 
 	// Middleware
@@ -20,9 +25,8 @@ func main() {
 	svc := service.NewService(db)
 
 	// Routes
-	e.POST("/payout", svc.CreatePayoutTransaction)
 	e.POST("/payment", svc.CreatePaymentTransaction)
-
+	e.POST("/payout", svc.CreatePayoutTransaction)
 	e.POST("/callback/:acquirer", svc.CallbackHandler)
 
 	// Start server

@@ -61,18 +61,18 @@ func (h *handler) handle(ctx context.Context, txn *models.Transaction) {
 	var status *acquirer.TransactionStatus
 	var err error
 
-	// ----
 	if txn.IsPayment() {
+		logger.Info("Processing PAYMENT")
 		status, err = h.acquirer.Payment(ctx, txn)
 	} else if txn.IsPayout() {
+		logger.Info("Processing PAYOUT")
 		status, err = h.acquirer.Payout(ctx, txn)
 	} else if txn.IsCallback() {
+		logger.Info("Processing CALLBACK")
 		status, err = h.acquirer.HandleCallback(ctx, txn)
 	} else {
 		logger.Info("unknown transaction status")
 	}
-	// ----
-
 	if err != nil {
 		logger.Error("error processing txn by acquirer interface: ", err)
 		txnFillHandlingError(txn, err)
@@ -88,22 +88,30 @@ func (h *handler) handle(ctx context.Context, txn *models.Transaction) {
 	}
 
 	switch status.Status {
+
 	case acquirer.APPROVED:
 		txn.SetReconciled(updatedAt)
 		logger.Info(fmt.Sprintf("approving txn with status: %s", txn.TxnStatusId))
+
 	case acquirer.REJECTED:
 		txn.SetDeclined(updatedAt)
+
 		if status.TxnError == nil {
 			errorCodeInt, _ := strconv.Atoi(errorCode)
 			status.TxnError = acquirer.NewTxnError(errorCodeInt, errorMessage)
 		}
+
 		errInfo := fmt.Sprintf("declining txn with code: %d", status.TxnError.Code)
 		if len(status.TxnError.Description) > 0 {
 			errInfo += fmt.Sprintf(" and message %s", status.TxnError.Description)
 		}
+
 		logger.Info(errInfo)
+		logger.Info("I'm here!")
+
 	case acquirer.PENDING:
 		h.SetSafePending(ctx, txn, &updatedAt)
+
 	case acquirer.UNSPECIFIED:
 		logger.Error("acquirer implementation returned unspecified status for transaction")
 	}
