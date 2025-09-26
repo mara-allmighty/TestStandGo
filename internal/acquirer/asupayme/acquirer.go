@@ -2,7 +2,7 @@ package asupayme
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"strconv"
 	"testStand/internal/acquirer"
 	"testStand/internal/acquirer/asupayme/api"
@@ -26,25 +26,25 @@ type GatewayParams struct {
 type ChannelParams struct {
 	ApiKey     string `json:"api_key"`
 	SecretKey  string `json:"secret_key"`
-	MerchantId string `json:"merchant_id"`
+	MerchantID string `json:"merchant_id"`
 }
 
 type Acquirer struct {
 	api                  *api.Client
 	dbClient             *repos.Repo
 	channelParams        ChannelParams
-	callbackUrl          string
+	callbackURL          string
 	percentageDifference *decimal.Decimal
 }
 
 // NewAcquirer
-func NewAcquirer(ctx context.Context, db *repos.Repo, channelParams ChannelParams, gatewayParams GatewayParams, callbackUrl string) *Acquirer {
+func NewAcquirer(ctx context.Context, db *repos.Repo, channelParams ChannelParams, gatewayParams GatewayParams, callbackURL string) *Acquirer {
 	return &Acquirer{
-		channelParams:        channelParams,
-		api:                  api.NewClient(ctx, channelParams.MerchantId, gatewayParams.Transport.BaseAddress, channelParams.ApiKey, channelParams.SecretKey, gatewayParams.Transport.Timeout),
+		api:                  api.NewClient(ctx, gatewayParams.Transport.BaseAddress, channelParams.ApiKey, channelParams.MerchantID, channelParams.SecretKey),
 		dbClient:             db,
-		callbackUrl:          callbackUrl,
+		channelParams:        channelParams,
 		percentageDifference: gatewayParams.PercentageDifference,
+		callbackURL:          callbackURL,
 	}
 }
 
@@ -55,27 +55,35 @@ func (a *Acquirer) Payment(ctx context.Context, txn *models.Transaction) (*acqui
 
 // Payout
 func (a *Acquirer) Payout(ctx context.Context, txn *models.Transaction) (*acquirer.TransactionStatus, error) {
-	log.Println("Payout is called")
 
-	requestBody := &api.Request{
-		Merchant:   a.channelParams.MerchantId,
+	requestBody := &api.WithdrawRequestBody{
+		Merchant:   a.channelParams.MerchantID,
 		WithdrawID: strconv.FormatInt(txn.TxnId, 10),
-		Amount:     txn.TxnAmountSrc,
+		Amount:     strconv.FormatInt(txn.TxnAmountSrc, 10),
 		CardData: &api.CardData{
 			OwnerName:  txn.Customer.FullName,
 			CardNumber: txn.PaymentData.Object.Credentials,
 		},
 	}
 
-	response, err := a.api.MakePayout(ctx, requestBody, a.channelParams.SecretKey)
+	response, err := a.api.MakePayout(ctx, requestBody)
 	if err != nil {
-		log.Println("An error occured while MakePayout and get response")
 		return nil, err
 	}
+	fmt.Println(response)
 
-	return &acquirer.TransactionStatus{ // ?
+	if response.Status != "success" {
+		return &acquirer.TransactionStatus{
+			Status: acquirer.REJECTED,
+			Info: map[string]string{
+				"ps_error_code": response.Code,
+			},
+		}, nil
+	}
+
+	return &acquirer.TransactionStatus{
 		Status:   acquirer.APPROVED,
-		GtwTxnId: &response.Id,
+		GtwTxnId: &response.Id, // #
 	}, nil
 }
 

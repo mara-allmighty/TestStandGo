@@ -43,6 +43,7 @@ func NewFactory(dbClient *repos.Repo) *Factory {
 func (f *Factory) Create(ctx context.Context, txn *models.Transaction) (any, error) {
 	logger := log.New("dev")
 
+	// Получаем конфиг Asupayme
 	gateway, err := f.dbClient.GetGateway(*txn.GtwName)
 	if err != nil {
 		logger.Error(fmt.Sprint(1, err))
@@ -54,6 +55,7 @@ func (f *Factory) Create(ctx context.Context, txn *models.Transaction) (any, err
 
 	logger.Info(fmt.Sprintf("Loaded gateway: %v", gateway))
 
+	// Получаем конфиг Клиента(Api-key, ID, ..)
 	channel, err := f.dbClient.GetChannel(*txn.ChnName)
 	if err != nil {
 		logger.Error(fmt.Sprint(2, err))
@@ -83,8 +85,7 @@ func (f *Factory) create(ctx context.Context, txn *models.Transaction, gateway *
 	}
 
 	switch gateway.Adapter {
-	//case FAKE_BANK:
-	//	acq = &fake.Acquirer{}
+	//
 	case AURIS:
 		var chParams auris.ChannelParams
 		var gtwParams auris.GatewayParams
@@ -92,6 +93,7 @@ func (f *Factory) create(ctx context.Context, txn *models.Transaction, gateway *
 			return nil, err
 		}
 		acq = auris.NewAcquirer(ctx, f.dbClient, chParams, gtwParams, callbackUrl)
+
 	case SEQUOIA:
 		var chParams sequoia.ChannelParams
 		var gtwParams sequoia.GatewayParams
@@ -99,6 +101,7 @@ func (f *Factory) create(ctx context.Context, txn *models.Transaction, gateway *
 			return nil, err
 		}
 		acq = sequoia.NewAcquirer(ctx, f.dbClient, &chParams, &gtwParams, callbackUrl)
+
 	case PAYLINK:
 		var chParams paylink.ChannelParams
 		var gtwParams paylink.GatewayParams
@@ -106,16 +109,19 @@ func (f *Factory) create(ctx context.Context, txn *models.Transaction, gateway *
 			return nil, err
 		}
 		acq = paylink.NewAcquirer(ctx, f.dbClient, &chParams, &gtwParams, callbackUrl)
+
 	case ASUPAYME:
-		var chParams asupayme.ChannelParams
-		var gtwParams asupayme.GatewayParams
+		var chParams asupayme.ChannelParams  // #
+		var gtwParams asupayme.GatewayParams // #
 		if err = f.unmarshalParams(gateway.ParamsJson, channelParams.Credentials, &gtwParams, &chParams); err != nil {
 			return nil, err
 		}
 		acq = asupayme.NewAcquirer(ctx, f.dbClient, chParams, gtwParams, callbackUrl)
+
 	default:
 		return nil, ErrUnsupportedAcquirer
 	}
+
 	logger.Info(fmt.Sprintf("Loaded acquirer: %s", gateway.Adapter))
 
 	return acq, nil

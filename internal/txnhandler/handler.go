@@ -55,7 +55,7 @@ func (h *handler) HandleTxn(ctx context.Context, txn *models.Transaction) {
 }
 
 // Sending requests to acquirer
-func (h *handler) handle(ctx context.Context, txn *models.Transaction) {
+func (h *handler) handle(ctx context.Context, txn *models.Transaction) { // #
 	logger := log.New("dev")
 
 	var status *acquirer.TransactionStatus
@@ -117,7 +117,7 @@ func (h *handler) handle(ctx context.Context, txn *models.Transaction) {
 	}
 
 	if status.GtwTxnId != nil {
-		txn.GtwTxnId = status.GtwTxnId
+		txn.GtwTxnId = status.GtwTxnId // ?
 	}
 
 	if status.ConvertedAmount != nil {

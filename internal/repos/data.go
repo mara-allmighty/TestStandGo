@@ -37,8 +37,9 @@ func (db *Repo) GetGateway(gatewayId string) (*Gateway, error) {
 }
 
 // GetChannel
-func (db *Repo) GetChannel(channelId string) (*Channel, error) {
+func (db *Repo) GetChannel(channelId string) (*Channel, error) { // передаем channelName, получаем channelId ?)
 	channel := new(Channel)
+
 	var channelParams []byte
 	row := db.pgClient.QueryRow(
 		`SELECT

@@ -4,10 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io"
-	"log"
+	"fmt"
 	"net/http"
+	"net/http/httputil"
 	"testStand/internal/acquirer/helper"
+)
+
+const (
+	payoutPath = "/api/v1/withdraw" // #
 )
 
 type Client struct {
@@ -18,67 +22,61 @@ type Client struct {
 	httpClient  *http.Client
 }
 
-func NewClient(ctx context.Context, merchantID, baseAddress, apiKey, secretKey string, timeout *int) *Client {
+func NewClient(ctx context.Context, baseAddress, apiKey, MerchantID, secretKey string) *Client {
 	return &Client{
 		baseAddress: baseAddress,
 		secretKey:   secretKey,
 		apiKey:      apiKey,
-		merchantID:  merchantID,
+		merchantID:  MerchantID,
 		httpClient:  http.DefaultClient,
 	}
 }
 
 // Payout
-func (c *Client) MakePayout(ctx context.Context, request *Request, apiKey string) (*Response, error) {
-	log.Println("MakePayout is called")
+func (c *Client) MakePayout(ctx context.Context, requestBody *WithdrawRequestBody) (*AsupaymeResponse, error) {
+	sign := createSign(requestBody, c.secretKey)
+	requestBody.Signature = sign
 
-	sign, err := createSign(request, apiKey)
-	if err != nil {
-		log.Println("An error occured while creating a sign")
-		return nil, err
-	}
+	resp := &AsupaymeResponse{}
 
-	resp := &Response{}
-	err = c.makeRequest(ctx, request, resp, sign)
+	err := c.makeRequest(ctx, requestBody, resp, payoutPath)
 	if err != nil {
-		log.Println("An error occured while sending request to asupayme")
 		return nil, err
 	}
 
 	return resp, nil
 }
 
-func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, endpoint string) error {
+func (c *Client) makeRequest(_ context.Context, payload, outResponse any, endpoint string) error {
+
 	body, err := json.Marshal(payload)
 	if err != nil {
-		log.Println("An error occured while marshal payload")
 		return err
 	}
 
 	req, err := http.NewRequest(http.MethodPost, helper.JoinUrl(c.baseAddress, endpoint), bytes.NewReader(body))
 	if err != nil {
-		log.Println("An error occured while http.NewRequest()")
 		return err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.httpClient.Do(req) // #
 	if err != nil {
-		log.Println("An error occured while httpCliend.Do working")
 		return err
 	}
+	data, _ := httputil.DumpResponse(resp, true)
+	fmt.Println(string(data))
 
 	defer resp.Body.Close()
 
-	bodyBytes, _ := io.ReadAll(resp.Body)
-
-	err = json.Unmarshal(bodyBytes, &outResponse)
+	err = json.NewDecoder(resp.Body).Decode(&outResponse)
 	if err != nil {
-		log.Println("An error occured while Unmarshal bodyBytes to &outResponse")
 		return nil
 	}
+
+	//
 
 	return nil
 }
