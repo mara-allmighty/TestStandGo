@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -28,8 +27,6 @@ func NewService(pgClient *sql.DB) *Service {
 }
 
 func (s *Service) CreatePayoutTransaction(c echo.Context) error {
-	fmt.Println(">>> CREATE PAYOUT TRANSACTION CALLED <<<")
-
 	req := &Request{}
 	err := c.Bind(req)
 	if err != nil {

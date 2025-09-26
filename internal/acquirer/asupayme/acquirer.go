@@ -40,7 +40,7 @@ type Acquirer struct {
 // NewAcquirer
 func NewAcquirer(ctx context.Context, db *repos.Repo, channelParams ChannelParams, gatewayParams GatewayParams, callbackURL string) *Acquirer {
 	return &Acquirer{
-		api:                  api.NewClient(ctx, gatewayParams.Transport.BaseAddress, channelParams.ApiKey, channelParams.MerchantID, channelParams.SecretKey),
+		api:                  api.NewClient(ctx, gatewayParams.Transport.BaseAddress, channelParams.ApiKey, channelParams.SecretKey),
 		dbClient:             db,
 		channelParams:        channelParams,
 		percentageDifference: gatewayParams.PercentageDifference,

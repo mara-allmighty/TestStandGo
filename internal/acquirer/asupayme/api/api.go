@@ -18,16 +18,14 @@ type Client struct {
 	baseAddress string
 	secretKey   string
 	apiKey      string
-	merchantID  string
 	httpClient  *http.Client
 }
 
-func NewClient(ctx context.Context, baseAddress, apiKey, MerchantID, secretKey string) *Client {
+func NewClient(ctx context.Context, baseAddress, apiKey, secretKey string) *Client {
 	return &Client{
 		baseAddress: baseAddress,
 		secretKey:   secretKey,
 		apiKey:      apiKey,
-		merchantID:  MerchantID,
 		httpClient:  http.DefaultClient,
 	}
 }
