@@ -26,6 +26,7 @@ const (
 	SEQUOIA  = "sequoia"
 	PAYLINK  = "paylink"
 	ASUPAYME = "asupayme"
+	ALPEX    = "alpex"
 )
 
 type Factory struct {
@@ -39,7 +40,7 @@ func NewFactory(dbClient *repos.Repo) *Factory {
 	}
 }
 
-// Create
+// Get Merchant and Acquirer params from database
 func (f *Factory) Create(ctx context.Context, txn *models.Transaction) (any, error) {
 	logger := log.New("dev")
 
@@ -118,6 +119,14 @@ func (f *Factory) create(ctx context.Context, txn *models.Transaction, gateway *
 		}
 		acq = asupayme.NewAcquirer(ctx, f.dbClient, chParams, gtwParams, callbackUrl)
 
+	case ALPEX:
+		var chnParams asupayme.ChannelParams
+		var gtwParams asupayme.GatewayParams
+		if err = f.unmarshalParams(gateway.ParamsJson, channelParams.Credentials, &gtwParams, &chnParams); err != nil {
+			return nil, err
+		}
+		acq = asupayme.NewAcquirer(ctx, f.dbClient, chnParams, gtwParams, callbackUrl)
+
 	default:
 		return nil, ErrUnsupportedAcquirer
 	}
@@ -127,7 +136,7 @@ func (f *Factory) create(ctx context.Context, txn *models.Transaction, gateway *
 	return acq, nil
 }
 
-// unmarshalParams
+// распаковываем реальные данные в структуры
 func (f *Factory) unmarshalParams(gatewayParamsJson string, channelParamsJson []byte, gatewayParams any, channelParams any) error {
 	if err := json.Unmarshal(channelParamsJson, channelParams); err != nil {
 		return err

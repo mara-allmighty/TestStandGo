@@ -35,7 +35,7 @@ func NewHandler(db *repos.Repo, acq any) (*handler, error) {
 	return &h, nil
 }
 
-// Create Transaction
+// Create transaction in database
 func (h *handler) HandleTxn(ctx context.Context, txn *models.Transaction) {
 
 	if h.acquirer != nil {
