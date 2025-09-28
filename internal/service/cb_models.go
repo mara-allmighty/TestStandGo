@@ -43,3 +43,34 @@ type Sequoia struct {
 	PaymentType int             `json:"payment_type"`
 	Status      string          `json:"status"`
 }
+
+type Alpex struct {
+	Id              string        `json:"_id"`
+	PaymentMethod   PaymentMethod `json:"payment_method"`
+	Direction       string        `json:"direction"`
+	Amount          string        `json:"amount"`
+	AmoutFiat       string        `json:"amount_fiat"`
+	Status          string        `json:"status"`
+	CreatedAt       string        `json:"created_at"`
+	OverdueAt       string        `json:"overdue_at"`
+	Fee             int           `json:"fee"`
+	FeeExternal     int           `json:"fee_external"`
+	IsExternal      bool          `json:"is_external"`
+	BeneficiaryName string        `json:"beneficiary_name"`
+	UnitCost        int           `json:"unit_cost"`
+	Signature       string        `json:"signature"`
+	ExternalId      string        `json:"external_id"`
+}
+
+type PaymentMethod struct {
+	Id      string `json:"_id"`
+	Gate    Gate   `json:"gate"`
+	Name    string `json:"name"`
+	Address string `json:"address"`
+	Person  string `json:"person"`
+}
+
+type Gate struct {
+	Id   string `json:"_id"`
+	Name string `json:"name"`
+}
