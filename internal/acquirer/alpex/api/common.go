@@ -1,5 +1,12 @@
 package api
 
+const (
+	Released = "RELEASED"
+	Declined = "DECLINED"
+	Refunded = "REFUNDED"
+	Canceled = "CANCELED"
+)
+
 // Payment/Payout
 type AlpexRequest struct {
 	FiatSymbol      string `json:"fiat_symbol"`
@@ -9,6 +16,7 @@ type AlpexRequest struct {
 	Direction       string `json:"direction"`
 	GateId          string `json:"gate_id"`
 	WebhookUrl      string `json:"webhook_url"`
+	ExternalId      string `json:"external_id"`
 }
 
 type AlpexResponse struct {
@@ -22,6 +30,14 @@ type AlpexCallbackResponse struct {
 	Status     string `json:"status"`
 	Signature  string `json:"signature"`
 	ExternalId string `json:"external_id"`
+}
+
+type Callback struct {
+	Id          string `json:"_id"`
+	Status      string `json:"status"`
+	Signature   string `json:"signature"`
+	ExternalId  string `json:"external_id"`
+	Description string `json:"description"`
 }
 
 type LoginRequest struct {

@@ -16,6 +16,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+// Интерфейс в своем роде
 type callbackMapperFunc func(*repos.Repo, string, []byte, string, http.Header) (int64, any, error)
 
 type callbackMapper struct {
@@ -34,17 +35,20 @@ var callbackMappersMap = map[string]*callbackMapper{
 	"paylink": newCallbackMapper(paylinkCallbackMapper, http.MethodPost),
 	"auris":   newCallbackMapper(aurisCallbackMapper, http.MethodPost),
 	"sequoia": newCallbackMapper(sequoiaCallbackMapper, http.MethodPost),
+	"alpex":   newCallbackMapper(alpexCallbackMapper, http.MethodPost), // fill
 }
 
 func (s *Service) CallbackHandler(c echo.Context) error {
 	logger := log.New("dev")
 
+	// если в параметрах запроса нет эндпоинта "/:acquirer"
 	acq := c.Param("acquirer")
 	if len(acq) == 0 {
 		logger.Error("acquirer param is not present")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "acquirer param is not present"})
 	}
 
+	// выбираем нужный обработчик
 	cbHandler, ok := callbackMappersMap[acq]
 	if !ok {
 		logger.Error(fmt.Sprintf("unknown acquirer: %s", acq))
@@ -52,6 +56,7 @@ func (s *Service) CallbackHandler(c echo.Context) error {
 	}
 	logger.Info(fmt.Sprintf("selected handler: %s", acq))
 
+	// если эквайер ожидает другой метод запроса -> error
 	if !slices.Contains(cbHandler.Methods, c.Request().Method) {
 		logger.Error("unsupported http method")
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "unsupported http method"})
@@ -59,7 +64,7 @@ func (s *Service) CallbackHandler(c echo.Context) error {
 
 	query := c.QueryParams().Encode()
 
-	// Check body
+	// Читаем тело запроса в байтах
 	bodyBytes, err := io.ReadAll(c.Request().Body)
 	if err != nil || len(bodyBytes) == 0 {
 		if query == "" {
@@ -70,7 +75,8 @@ func (s *Service) CallbackHandler(c echo.Context) error {
 
 	headers := c.Request().Header
 
-	txnId, payload, err := cbHandler.Handler(s.dbClient, acq, bodyBytes, query, headers)
+	// получаем Id действущей txn, парсим тело Callback в Go-структуру
+	txnId, payload, err := cbHandler.Handler(s.dbClient, acq, bodyBytes, query, headers) // !!!
 	if err != nil {
 		logger.Error("request body parsing error - ", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "request body read error"})
@@ -84,6 +90,7 @@ func (s *Service) CallbackHandler(c echo.Context) error {
 
 	logger.Info(fmt.Sprintf("callback parsed. txn_id = %d", txnId))
 
+	// сохрнаяем в виде байтов тело Коллбека
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
 		logger.Error("payload marshaling error - ", err)
@@ -91,15 +98,18 @@ func (s *Service) CallbackHandler(c echo.Context) error {
 	}
 	logger.Info("callback marshalled")
 
+	// находим в базе транзакция по Id
 	txn, err := s.dbClient.GetTransaction(txnId)
 	if err != nil {
 		logger.Error("getting txn error")
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "getting txn error"})
 	}
 
+	// изменяем состояние транзацкции локально
 	txn.TxnInfo["callback"] = string(payloadBytes)
 	txn.TxnTypeId = models.Transaction_CALLBACK
 
+	// -> service.process() -> handler.HandleTxn() -> handler.handle() -> h.acquirer.HandleCallback()
 	go s.process(context.Background(), txn)
 
 	return c.String(http.StatusOK, "OK")
@@ -152,6 +162,24 @@ func paylinkCallbackMapper(payRepo *repos.Repo, gtwAdapterId string, content []b
 	}
 
 	txnId, err := strconv.ParseInt(callback.UserRef, 10, 64)
+	if err != nil {
+		logger.Error("error parsing txnId - ", err)
+		return 0, nil, err
+	}
+
+	return txnId, callback, nil
+}
+
+func alpexCallbackMapper(payRepo *repos.Repo, gtwAdapterId string, bodyContent []byte, query string, headers http.Header) (int64, any, error) {
+	logger := log.New("dev")
+
+	callback := Alpex{}
+	if err := json.Unmarshal(bodyContent, &callback); err != nil {
+		logger.Error("callback body unmarshalling error - ", err)
+		return 0, nil, err
+	}
+
+	txnId, err := strconv.ParseInt(callback.ExternalId, 10, 64)
 	if err != nil {
 		logger.Error("error parsing txnId - ", err)
 		return 0, nil, err

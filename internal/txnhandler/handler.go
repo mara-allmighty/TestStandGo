@@ -45,6 +45,7 @@ func (h *handler) HandleTxn(ctx context.Context, txn *models.Transaction) {
 		}
 		h.handle(ctx, txn)
 
+		// изменяем состояние транзацкции в бд #2
 		err = h.dbClient.UpdateTransactionStatus(txn)
 		if err != nil {
 			return

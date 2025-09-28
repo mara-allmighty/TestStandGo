@@ -2,10 +2,13 @@ package alpex
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"testStand/internal/acquirer"
 	"testStand/internal/acquirer/alpex/api"
-	"testStand/internal/acquirer/helper"
 	"testStand/internal/models"
 	"testStand/internal/repos"
 
@@ -57,6 +60,7 @@ func (a *Acquirer) Payment(ctx context.Context, txn *models.Transaction) (*acqui
 		CustomerAddress: txn.PaymentData.Object.Credentials,
 		Direction:       "BUY",
 		WebhookUrl:      a.channelParams.WebhookUrl,
+		ExternalId:      strconv.FormatInt(txn.TxnId, 10),
 	}
 
 	response, err := a.api.MakePay(ctx, requestBody)
@@ -92,6 +96,7 @@ func (a *Acquirer) Payout(ctx context.Context, txn *models.Transaction) (*acquir
 		Direction:       "SELL",
 		GateId:          txn.Customer.AccountId, // gate_id = [account_id || payment_data_bank || or what?]
 		WebhookUrl:      a.channelParams.WebhookUrl,
+		ExternalId:      strconv.FormatInt(txn.TxnId, 10),
 	}
 
 	response, err := a.api.MakePay(ctx, requestBody)
@@ -117,10 +122,39 @@ func (a *Acquirer) Payout(ctx context.Context, txn *models.Transaction) (*acquir
 
 // HandleCallback
 func (a *Acquirer) HandleCallback(ctx context.Context, txn *models.Transaction) (*acquirer.TransactionStatus, error) {
-	return helper.UnsupportedMethodError()
+	logger := log.New("dev")
+
+	callbackBody, ok := txn.TxnInfo["callback"]
+	if !ok {
+		return nil, errors.New("callback body is missing")
+	}
+
+	callback := api.Callback{}
+	if err := json.Unmarshal([]byte(callbackBody), &callback); err != nil {
+		logger.Error("Error unmarshalling callback: ", callbackBody)
+		return nil, err
+	}
+
+	txnStatus := &acquirer.TransactionStatus{}
+	if callback.Description != "" {
+		txnStatus.Info = map[string]string{"ps_error_code": callback.Description}
+	}
+
+	// навсегда меняем статус транзакции локально в памяти #1 и возвращаем в handle <- handleTxn
+	switch strings.ToUpper(callback.Status) {
+	case api.Released:
+		txnStatus.Status = acquirer.APPROVED
+		return txnStatus, nil
+	case api.Declined, api.Refunded, api.Canceled:
+		txnStatus.Status = acquirer.REJECTED
+		return txnStatus, nil
+	default:
+		txnStatus.Status = acquirer.PENDING
+		return txnStatus, nil
+	}
 }
 
 // FinalizePending
 func (a *Acquirer) FinalizePending(ctx context.Context, txn *models.Transaction) (*acquirer.TransactionStatus, error) {
-	return helper.UnsupportedMethodError()
+	return &acquirer.TransactionStatus{Status: acquirer.PENDING}, nil
 }
