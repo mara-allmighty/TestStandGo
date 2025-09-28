@@ -34,7 +34,7 @@ func (s *Service) CreatePayoutTransaction(c echo.Context) error {
 	}
 	resp := s.createTransaction(req, models.Transaction_PAYOUT)
 
-	return c.JSON(http.StatusOK, resp)
+	return c.JSON(http.StatusOK, resp) // ответ в Postman
 }
 
 func (s *Service) CreatePaymentTransaction(c echo.Context) error {
@@ -43,12 +43,14 @@ func (s *Service) CreatePaymentTransaction(c echo.Context) error {
 	if err != nil {
 		return err
 	}
+
 	resp := s.createTransaction(req, models.Transaction_PAYMENT)
 
 	return c.JSON(http.StatusOK, resp)
 }
 
 func (s *Service) createTransaction(req *Request, txnType models.Transaction_Type) *Response {
+
 	txn := &models.Transaction{
 		TxnId:          int64(uuid.New().ID()),
 		ParentTxn:      nil,
@@ -96,10 +98,10 @@ func (s *Service) createTransaction(req *Request, txnType models.Transaction_Typ
 // process
 func (s *Service) process(ctx context.Context, txn *models.Transaction) {
 	logger := log.New("dev")
-	logger.Info("am daen")
 
 	// Choose acquirer by gateway
 	acq, err := s.selectAcquirer(ctx, txn)
+
 	if err != nil {
 		logger.Error("Error creating acquirer for the gateway - ", err)
 		if err == repos.ErrGtwNotFound || err == repos.ErrChnNotFound {

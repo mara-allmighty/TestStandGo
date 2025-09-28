@@ -2,17 +2,12 @@ package main
 
 import (
 	"testStand/internal/service"
-	"testStand/logs"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
 
 func main() {
-	// Используем путь внутри контейнера (WORKDIR /root/)
-	logFile := logs.SetLogger("./logs/app.log")
-	defer logFile.Close() // ← обязательно!
-
 	// Echo
 	e := echo.New()
 

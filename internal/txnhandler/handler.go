@@ -35,44 +35,43 @@ func NewHandler(db *repos.Repo, acq any) (*handler, error) {
 	return &h, nil
 }
 
-// Create transaction in database
+// Create transaction in DB
 func (h *handler) HandleTxn(ctx context.Context, txn *models.Transaction) {
 
 	if h.acquirer != nil {
 		err := h.dbClient.CreateTransaction(txn)
 		if err != nil {
-			log.Error("error with saving transaction - ", err)
 			return
 		}
 		h.handle(ctx, txn)
 
 		err = h.dbClient.UpdateTransactionStatus(txn)
 		if err != nil {
-			log.Error("error with updating transaction - ", err)
 			return
 		}
 	}
 }
 
-// Sending requests to acquirer
-func (h *handler) handle(ctx context.Context, txn *models.Transaction) { // #
+func (h *handler) handle(ctx context.Context, txn *models.Transaction) {
 	logger := log.New("dev")
 
 	var status *acquirer.TransactionStatus
 	var err error
 
+	// sending requests
 	if txn.IsPayment() {
-		logger.Info("Processing PAYMENT")
+		fmt.Println("Processing PAYMENT")
 		status, err = h.acquirer.Payment(ctx, txn)
 	} else if txn.IsPayout() {
-		logger.Info("Processing PAYOUT")
+		fmt.Println("Processing PAYOUT")
 		status, err = h.acquirer.Payout(ctx, txn)
 	} else if txn.IsCallback() {
-		logger.Info("Processing CALLBACK")
+		fmt.Println("Processing CALLBACK")
 		status, err = h.acquirer.HandleCallback(ctx, txn)
 	} else {
 		logger.Info("unknown transaction status")
 	}
+
 	if err != nil {
 		logger.Error("error processing txn by acquirer interface: ", err)
 		txnFillHandlingError(txn, err)
@@ -105,9 +104,7 @@ func (h *handler) handle(ctx context.Context, txn *models.Transaction) { // #
 		if len(status.TxnError.Description) > 0 {
 			errInfo += fmt.Sprintf(" and message %s", status.TxnError.Description)
 		}
-
 		logger.Info(errInfo)
-		logger.Info("I'm here!")
 
 	case acquirer.PENDING:
 		h.SetSafePending(ctx, txn, &updatedAt)

@@ -10,6 +10,8 @@ import (
 	"testStand/internal/models"
 	"testStand/internal/repos"
 
+	"github.com/labstack/gommon/log"
+
 	"github.com/shopspring/decimal"
 )
 
@@ -55,6 +57,8 @@ func (a *Acquirer) Payment(ctx context.Context, txn *models.Transaction) (*acqui
 
 // Payout
 func (a *Acquirer) Payout(ctx context.Context, txn *models.Transaction) (*acquirer.TransactionStatus, error) {
+	logger := log.New("asupayme")
+	logger.Info("asupayme/acquirer.go Payout")
 
 	requestBody := &api.WithdrawRequestBody{
 		Merchant:   a.channelParams.MerchantID,

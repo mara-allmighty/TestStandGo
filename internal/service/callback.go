@@ -23,17 +23,17 @@ type callbackMapper struct {
 	Methods []string
 }
 
-var callbackMappersMap = map[string]*callbackMapper{
-	"paylink": newCallbackMapper(paylinkCallbackMapper, http.MethodPost),
-	"auris":   newCallbackMapper(aurisCallbackMapper, http.MethodPost),
-	"sequoia": newCallbackMapper(sequoiaCallbackMapper, http.MethodPost),
-}
-
 func newCallbackMapper(handler callbackMapperFunc, methods ...string) *callbackMapper {
 	return &callbackMapper{
 		Handler: handler,
 		Methods: methods,
 	}
+}
+
+var callbackMappersMap = map[string]*callbackMapper{
+	"paylink": newCallbackMapper(paylinkCallbackMapper, http.MethodPost),
+	"auris":   newCallbackMapper(aurisCallbackMapper, http.MethodPost),
+	"sequoia": newCallbackMapper(sequoiaCallbackMapper, http.MethodPost),
 }
 
 func (s *Service) CallbackHandler(c echo.Context) error {

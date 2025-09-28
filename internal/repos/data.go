@@ -55,6 +55,7 @@ func (db *Repo) GetChannel(channelId string) (*Channel, error) { // переда
 		return nil, err
 	}
 
+	// распаковывает креды в тип channel
 	err = json.Unmarshal(channelParams, &channel.Params)
 	if err != nil {
 		return nil, err

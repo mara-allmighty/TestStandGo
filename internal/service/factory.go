@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	"testStand/internal/acquirer"
+	"testStand/internal/acquirer/alpex"
 	"testStand/internal/acquirer/asupayme"
 	"testStand/internal/acquirer/auris"
 	"testStand/internal/acquirer/paylink"
@@ -44,7 +45,7 @@ func NewFactory(dbClient *repos.Repo) *Factory {
 func (f *Factory) Create(ctx context.Context, txn *models.Transaction) (any, error) {
 	logger := log.New("dev")
 
-	// Получаем конфиг Asupayme
+	// Получаем конфиг
 	gateway, err := f.dbClient.GetGateway(*txn.GtwName)
 	if err != nil {
 		logger.Error(fmt.Sprint(1, err))
@@ -56,7 +57,7 @@ func (f *Factory) Create(ctx context.Context, txn *models.Transaction) (any, err
 
 	logger.Info(fmt.Sprintf("Loaded gateway: %v", gateway))
 
-	// Получаем конфиг Клиента(Api-key, ID, ..)
+	// Получаем структуру Channel с кредами channel.Params клиента
 	channel, err := f.dbClient.GetChannel(*txn.ChnName)
 	if err != nil {
 		logger.Error(fmt.Sprint(2, err))
@@ -112,20 +113,24 @@ func (f *Factory) create(ctx context.Context, txn *models.Transaction, gateway *
 		acq = paylink.NewAcquirer(ctx, f.dbClient, &chParams, &gtwParams, callbackUrl)
 
 	case ASUPAYME:
-		var chParams asupayme.ChannelParams  // #
-		var gtwParams asupayme.GatewayParams // #
+		var chParams asupayme.ChannelParams
+		var gtwParams asupayme.GatewayParams
 		if err = f.unmarshalParams(gateway.ParamsJson, channelParams.Credentials, &gtwParams, &chParams); err != nil {
 			return nil, err
 		}
 		acq = asupayme.NewAcquirer(ctx, f.dbClient, chParams, gtwParams, callbackUrl)
 
 	case ALPEX:
-		var chnParams asupayme.ChannelParams
-		var gtwParams asupayme.GatewayParams
+		var chnParams alpex.ChannelParams
+		var gtwParams alpex.GatewayParams
+		fmt.Printf("\nCreds: %s\n", channelParams.Credentials)
+
 		if err = f.unmarshalParams(gateway.ParamsJson, channelParams.Credentials, &gtwParams, &chnParams); err != nil {
 			return nil, err
 		}
-		acq = asupayme.NewAcquirer(ctx, f.dbClient, chnParams, gtwParams, callbackUrl)
+		fmt.Printf("chnParams after unmarshal: %v", chnParams)
+
+		acq = alpex.NewAcquirer(ctx, f.dbClient, chnParams, gtwParams, callbackUrl)
 
 	default:
 		return nil, ErrUnsupportedAcquirer
