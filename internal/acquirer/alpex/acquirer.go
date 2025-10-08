@@ -19,6 +19,7 @@ import (
 )
 
 type ChannelParams struct {
+	Id         string `gate_id`
 	Login      string `json:"login"`
 	Password   string `json:"password"`
 	WebhookUrl string `json:"webhook_url"`
@@ -95,7 +96,7 @@ func (a *Acquirer) Payout(ctx context.Context, txn *models.Transaction) (*acquir
 		CustomerName:    txn.Customer.FullName,
 		CustomerAddress: txn.PaymentData.Object.Credentials,
 		Direction:       "SELL",
-		GateId:          txn.PaymentData.Object.Credentials, // '4111..'
+		GateId:          a.channelParams.Id, //?
 		WebhookUrl:      a.channelParams.WebhookUrl,
 		ExternalId:      strconv.FormatInt(txn.TxnId, 10),
 	}
