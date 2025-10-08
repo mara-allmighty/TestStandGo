@@ -19,7 +19,7 @@ import (
 )
 
 type ChannelParams struct {
-	Id         string `gate_id`
+	Id         string `json:"merchant_id"`
 	Login      string `json:"login"`
 	Password   string `json:"password"`
 	WebhookUrl string `json:"webhook_url"`
