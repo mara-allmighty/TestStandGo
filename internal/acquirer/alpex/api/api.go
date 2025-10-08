@@ -15,6 +15,7 @@ import (
 const (
 	getTokenEndpoint = "/v1/auth/login"
 	payInOutEndpoint = "/v1/offer/external"
+	signatureEnd     = "v1/user/generate-signature-key"
 )
 
 type Client struct {
@@ -91,6 +92,36 @@ func (c *Client) makeRequest(_ context.Context, payload, outResponse any, endpoi
 	return nil
 }
 
+// Validte callback
+func (c *Client) IsCallbackSignValid(callback *Callback) (bool, error) {
+	apiKey, err := c.getToken()
+	if err != nil {
+		return false, err
+	}
+	req, err := http.NewRequest(http.MethodPost, helper.JoinUrl(c.baseAddress, signatureEnd), nil)
+	if err != nil {
+		return false, err
+	}
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	var callbackSignature string
+	if err := json.NewDecoder(resp.Body).Decode(&callbackSignature); err != nil {
+		return false, err
+	}
+
+	mySignature := createSign(callback, callbackSignature)
+	if mySignature != callback.Signature {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 // Get token
 func (c *Client) getToken() (string, error) {
 	logger := log.New("getToken")
@@ -106,8 +137,7 @@ func (c *Client) getToken() (string, error) {
 		return "", err
 	}
 
-	body := bytes.NewBuffer(jsonData)
-	req, err := http.NewRequest(http.MethodPost, helper.JoinUrl(c.baseAddress, getTokenEndpoint), body)
+	req, err := http.NewRequest(http.MethodPost, helper.JoinUrl(c.baseAddress, getTokenEndpoint), bytes.NewBuffer(jsonData))
 	if err != nil {
 		logger.Info("Err occured while creating req")
 		return "", err

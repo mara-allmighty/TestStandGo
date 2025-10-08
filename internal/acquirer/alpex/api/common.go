@@ -1,5 +1,12 @@
 package api
 
+import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
+)
+
 const (
 	Released = "RELEASED"
 	Declined = "DECLINED"
@@ -47,4 +54,12 @@ type LoginRequest struct {
 
 type Token struct {
 	AccessToken string `json:"access_token"`
+}
+
+// Alpex
+func createSign(callback *Callback, secretKey string) string {
+	sum := fmt.Sprintf("id=%s\nstatus=%s", callback.Id, callback.Status)
+	h := hmac.New(sha256.New, []byte(secretKey))
+	h.Write([]byte(sum))
+	return hex.EncodeToString(h.Sum(nil))
 }

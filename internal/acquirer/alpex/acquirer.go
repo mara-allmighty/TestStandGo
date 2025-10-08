@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testStand/internal/acquirer"
 	"testStand/internal/acquirer/alpex/api"
+	"testStand/internal/acquirer/helper"
 	"testStand/internal/models"
 	"testStand/internal/repos"
 
@@ -81,7 +82,7 @@ func (a *Acquirer) Payment(ctx context.Context, txn *models.Transaction) (*acqui
 	return &acquirer.TransactionStatus{
 		Status:   acquirer.PENDING,
 		GtwTxnId: &response.Id,
-	}, err
+	}, nil
 }
 
 // Pay Out
@@ -94,7 +95,7 @@ func (a *Acquirer) Payout(ctx context.Context, txn *models.Transaction) (*acquir
 		CustomerName:    txn.Customer.FullName,
 		CustomerAddress: txn.PaymentData.Object.Credentials,
 		Direction:       "SELL",
-		GateId:          txn.Customer.AccountId, // gate_id = [account_id || payment_data_bank || or what?]
+		GateId:          txn.PaymentData.Object.Credentials, // '4111..'
 		WebhookUrl:      a.channelParams.WebhookUrl,
 		ExternalId:      strconv.FormatInt(txn.TxnId, 10),
 	}
@@ -117,7 +118,7 @@ func (a *Acquirer) Payout(ctx context.Context, txn *models.Transaction) (*acquir
 	return &acquirer.TransactionStatus{
 		Status:   acquirer.PENDING,
 		GtwTxnId: &response.Id,
-	}, err
+	}, nil
 }
 
 // HandleCallback
@@ -133,6 +134,15 @@ func (a *Acquirer) HandleCallback(ctx context.Context, txn *models.Transaction) 
 	if err := json.Unmarshal([]byte(callbackBody), &callback); err != nil {
 		logger.Error("Error unmarshalling callback: ", callbackBody)
 		return nil, err
+	}
+
+	// validate signature
+	ok, err := a.api.IsCallbackSignValid(&callback)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, errors.New("signatures do not match")
 	}
 
 	txnStatus := &acquirer.TransactionStatus{}
@@ -156,5 +166,5 @@ func (a *Acquirer) HandleCallback(ctx context.Context, txn *models.Transaction) 
 
 // FinalizePending
 func (a *Acquirer) FinalizePending(ctx context.Context, txn *models.Transaction) (*acquirer.TransactionStatus, error) {
-	return &acquirer.TransactionStatus{Status: acquirer.PENDING}, nil
+	return helper.UnsupportedMethodError()
 }

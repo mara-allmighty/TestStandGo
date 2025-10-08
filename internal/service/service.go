@@ -69,6 +69,8 @@ func (s *Service) createTransaction(req *Request, txnType models.Transaction_Typ
 		TxnStatusId:    models.Transaction_NEW.String(),
 		TxnUpdatedAt:   time.Time{},
 	}
+	logger := log.New("service")
+	logger.Info(txn.PayMethodId, txn.PaymentData.Object.Bank, txn.PaymentData.Object.Credentials, txn.GtwName)
 
 	ctx := context.Background()
 	s.process(ctx, txn)
