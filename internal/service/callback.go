@@ -173,7 +173,7 @@ func paylinkCallbackMapper(payRepo *repos.Repo, gtwAdapterId string, content []b
 func alpexCallbackMapper(payRepo *repos.Repo, gtwAdapterId string, bodyContent []byte, query string, headers http.Header) (int64, any, error) {
 	logger := log.New("dev")
 
-	callback := Alpex{}
+	callback := AlpexCallbackResponse{}
 	if err := json.Unmarshal(bodyContent, &callback); err != nil {
 		logger.Error("callback body unmarshalling error - ", err)
 		return 0, nil, err

@@ -79,7 +79,7 @@ func (c *Client) makeRequest(_ context.Context, payload, outResponse any, endpoi
 		return err
 	}
 	data, _ := httputil.DumpResponse(resp, true)
-	fmt.Printf("\n--------makeRequest--------\n%s\n", string(data))
+	fmt.Printf("\n--------makeRequest-------- resp with callb\n%s\n", string(data))
 
 	defer resp.Body.Close()
 

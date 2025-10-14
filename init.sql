@@ -31,7 +31,7 @@ VALUES ('paylink', 1, '{"credentials": {"api_key": "m9bb1lelXNK3c198UWb2e41J1EQM
  ('auris', 2, '{"credentials": {"api_key": "049050051052-8ECG0WKvwSTWBzHTv2qtzy6MTiCkEoT2QAVAmNoGfQPzm02sPuBtz4nRwCJRs6fmM0WHUNqke6gG8o1MKcVHZGpJScZtOt8SmC3X1PGRx9uMTL3rw-OQP244B0M3HTID6T8PixLROqwaYQHJq6", "shop_id": 1102, "secret_key": "049050051052-jVDNvl8Lm8U4LQ7NPFGP2K03-k7w0o06k"}, "payment_methods": ["p2pcard"]}'),
  ('sequoia', 3, '{"credentials": {"secret_key": "8f5DSbXOolXwhLVmtOd", "callback_secret": "fqLFXw9BQLbW7G83Uf"}, "payment_methods": ["p2pcard"]}'),
  ('asupayme', 4, '{"credentials": {"api_key": "c2RmZHNhYnZmZGFiYWV0dnJ0c3JhZGZoYnN0cmRmdmJzZ2Z4MjM0NTQzZ2czcXZhZQ==", "secret_key": "superSecretKey228", "merchant_id": "32"}, "payment_methods": ["card"]}'),
- ('alpex', 5, '{"credentials": {"login": "buyer@dev.alpex.app", "password": "dev", "webhook_url": "https://webhook.site/e928a7c2-f636-4d8c-915a-ee20b02bd6f3"}}');
+ ('alpex', 5, '{"credentials": {"login": "buyer@dev.alpex.app", "password": "dev", "webhook_url": "https://webhook.site/229ad295-2f54-4a9a-90e8-f6a28ef972c5"}}');
 
 -- auto-generated definition
 create table transaction

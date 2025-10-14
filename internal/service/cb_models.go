@@ -44,7 +44,7 @@ type Sequoia struct {
 	Status      string          `json:"status"`
 }
 
-type Alpex struct {
+type AlpexCallbackResponse struct {
 	Id              string        `json:"_id"`
 	PaymentMethod   PaymentMethod `json:"payment_method"`
 	Direction       string        `json:"direction"`

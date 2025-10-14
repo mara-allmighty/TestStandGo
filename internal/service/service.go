@@ -46,7 +46,7 @@ func (s *Service) CreatePaymentTransaction(c echo.Context) error {
 
 	resp := s.createTransaction(req, models.Transaction_PAYMENT)
 
-	return c.JSON(http.StatusOK, resp)
+	return c.JSON(http.StatusOK, resp) // ответ в Postman
 }
 
 func (s *Service) createTransaction(req *Request, txnType models.Transaction_Type) *Response {
